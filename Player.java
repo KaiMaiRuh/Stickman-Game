@@ -1,22 +1,47 @@
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 
-/**
- * Represents the player-controlled stickman.  Handles jumping,
- * gravity and sliding.  The player can only jump when on the
- * ground and sliding temporarily reduces the height of the player's
- * bounding box to allow ducking under obstacles.  The sliding
- * mechanism can be extended to include a timer or animation.
- */
 class Player extends Sprite {
-    private double velocityY = 0;    // vertical speed
-    private boolean onGround = true; // whether the player is on the ground
-    private boolean sliding = false; // whether the player is currently sliding
+    private double velocityY = 0;
+    private boolean onGround = true;
+    private boolean sliding = false;
 
-    // Original dimensions.  Used to restore height after sliding.
     private final int originalHeight;
     private final int originalWidth;
+
+    private BufferedImage[] runFrames;
+    private int frameIndex = 0;
+    private int frameTicker = 0;
+    // Tunable animation/physics defaults
+    private static final int RUN_FRAMES_PER_STEP = 16;
+    private static final int JUMP_FRAMES_PER_STEP = 12;
+    private static final int SLIDE_FRAMES_PER_STEP = 8;
+
+    private int framesPerStep = RUN_FRAMES_PER_STEP;
+    private double runAnimSpeedMultiplier = 1.0;
+
+    private BufferedImage[] jumpFrames;
+    private int jumpIndex = 0;
+    private int jumpTicker = 0;
+    private int jumpFramesPerStep = JUMP_FRAMES_PER_STEP;
+    private boolean jumpAnimPlaying = false;
+
+    private BufferedImage[] slideFrames;
+    private int slideIndex = 0;
+    private int slideTicker = 0;
+    private int slideFramesPerStep = SLIDE_FRAMES_PER_STEP;
+    private int slideDownCount = 3;
+    private boolean slideAnimActive = false;
+    private boolean slideReleasePlaying = false;
+
+    private static final double SLIDE_VISUAL_SCALE = 0.4;
+    // Single source of truth for default jump physics
+    private static final double DEFAULT_GRAVITY_ACC = 0.4;
+    private static final double DEFAULT_JUMP_VELOCITY = -11.0;
+    private double gravityAcc = DEFAULT_GRAVITY_ACC;
+    private double jumpVelocity = DEFAULT_JUMP_VELOCITY;
 
     public Player(double x, double y, BufferedImage image) {
         super(x, y, image);
@@ -24,91 +49,221 @@ class Player extends Sprite {
         this.originalHeight = this.height;
     }
 
+    public Player(double x, double y, BufferedImage[] frames) {
+        super(x, y, (frames != null && frames.length > 0) ? frames[0] : null);
+        this.runFrames = (frames != null && frames.length > 0) ? frames.clone() : null;
+
+        if (this.image != null) {
+            this.width = this.image.getWidth();
+            this.height = this.image.getHeight();
+        } else {
+            this.width = 40;
+            this.height = 60;
+        }
+        this.originalWidth = this.width;
+        this.originalHeight = this.height;
+    }
+
+    public Player(double x, double y, BufferedImage[] runFrames, BufferedImage[] jumpFrames) {
+        this(x, y, runFrames);
+        this.jumpFrames = (jumpFrames != null && jumpFrames.length > 0) ? jumpFrames.clone() : null;
+    }
+
+    public Player(double x, double y, BufferedImage[] runFrames, BufferedImage[] jumpFrames, BufferedImage[] slideFrames) {
+        this(x, y, runFrames, jumpFrames);
+        this.slideFrames = (slideFrames != null && slideFrames.length > 0) ? slideFrames.clone() : null;
+        if (this.slideFrames != null) {
+            slideDownCount = Math.min(slideDownCount, this.slideFrames.length);
+        }
+    }
+
     @Override
     public void update() {
-        // Apply gravity.  When jumping or falling, velocityY is
-        // updated each frame.  When on ground velocityY remains 0.
         if (!onGround) {
-            velocityY += 0.5; // gravity strength
+            velocityY += gravityAcc;
         }
 
-        // Update vertical position
         y += velocityY;
 
-        // Check for collision with the ground.  If the bottom of the
-        // player goes below the ground level clamp it and reset
-        // velocity.  The ground is defined as HEIGHT - 50 in
-        // GameCanvas.  Because Player has no reference to the canvas
-        // dimensions we assume that the caller sets y such that the
-        // ground is y value and that negative velocity resets the
-        // onGround flag appropriately.
-        double groundY = GameCanvas.HEIGHT - 50 - height;
+    double groundY = GameCanvas.HEIGHT - GameCanvas.GROUND_HEIGHT - height;
         if (y >= groundY) {
             y = groundY;
             velocityY = 0;
             onGround = true;
         }
+
+        // Give jump animation priority over slide so we can jump out of a slide immediately
+        if (jumpAnimPlaying && jumpFrames != null && jumpFrames.length > 0) {
+            jumpTicker++;
+            if (jumpTicker >= jumpFramesPerStep) {
+                jumpTicker = 0;
+                jumpIndex++;
+                if (jumpIndex >= jumpFrames.length) {
+                    jumpAnimPlaying = false;
+                    jumpIndex = 0;
+                    frameIndex = 0;
+                    if (runFrames != null && runFrames.length > 0) {
+                        image = runFrames[0];
+                        width = image.getWidth();
+                        if (!sliding) {
+                            height = image.getHeight();
+                        }
+                    }
+                } else {
+                    image = jumpFrames[jumpIndex];
+                    width = image.getWidth();
+                    if (!sliding) {
+                        height = image.getHeight();
+                    }
+                }
+            }
+        } else if (slideAnimActive && slideFrames != null && slideFrames.length > 0) {
+            slideTicker++;
+            if (slideTicker >= slideFramesPerStep) {
+                slideTicker = 0;
+                if (!slideReleasePlaying) {
+                    if (slideIndex + 1 < slideDownCount) {
+                        slideIndex++;
+                    }
+                } else {
+                    if (slideIndex + 1 < slideFrames.length) {
+                        slideIndex++;
+                    } else {
+                        slideAnimActive = false;
+                        slideReleasePlaying = false;
+                        sliding = false;
+                        slideIndex = 0;
+                        if (runFrames != null && runFrames.length > 0) {
+                            frameIndex = 0;
+                            image = runFrames[0];
+                            width = image.getWidth();
+                            height = image.getHeight();
+                        }
+                    }
+                }
+                if (slideAnimActive) {
+                    image = slideFrames[slideIndex];
+                    width = image.getWidth();
+                    height = image.getHeight();
+                }
+            }
+        } else if (runFrames != null && runFrames.length > 0) {
+            int runStep = Math.max(1, (int) Math.round(framesPerStep / Math.max(0.1, runAnimSpeedMultiplier)));
+            frameTicker++;
+            if (frameTicker >= runStep) {
+                frameTicker = 0;
+                frameIndex = (frameIndex + 1) % runFrames.length;
+                image = runFrames[frameIndex];
+                width = image.getWidth();
+                height = image.getHeight();
+            }
+        }
     }
 
-    /**
-     * Initiates a jump if the player is on the ground.  Sets the
-     * vertical velocity to a negative value to move up on the next
-     * update and marks the player as airborne.
-     */
     public void jump() {
-        if (onGround) {
-            velocityY = -10;
+        // Allow jumping either from ground or when sliding (including mid-air slide)
+        if (onGround || sliding) {
+            // end slide state so jump animation can take over
+            sliding = false;
+            slideAnimActive = false;
+            slideReleasePlaying = false;
+
+            velocityY = jumpVelocity;
             onGround = false;
+            if (jumpFrames != null && jumpFrames.length > 0) {
+                jumpAnimPlaying = true;
+                jumpIndex = 0;
+                jumpTicker = 0;
+                image = jumpFrames[0];
+                width = image.getWidth();
+                if (!sliding) {
+                    height = image.getHeight();
+                }
+            }
         }
     }
 
-    /**
-     * Starts sliding.  When sliding the player's height is reduced
-     * and the y position adjusted so the bottom of the player stays
-     * aligned with the ground.  A more sophisticated implementation
-     * might include a timer to end sliding automatically.
-     */
     public void startSlide() {
-        if (!sliding && onGround) {
+        if (!sliding) {
             sliding = true;
-            // Reduce height to half and raise y so the bottom stays on the ground
-            height = originalHeight / 2;
-            y += originalHeight / 2;
+            if (slideFrames != null && slideFrames.length > 0) {
+                slideAnimActive = true;
+                slideReleasePlaying = false;
+                slideIndex = 0;
+                slideTicker = 0;
+                image = slideFrames[0];
+                width = image.getWidth();
+                height = image.getHeight();
+                // If in air, do not modify y; visual will show airborne slide
+            } else {
+                if (onGround) {
+                    height = originalHeight / 2;
+                    y += originalHeight / 2;
+                } else {
+                    // mid-air without frames: reduce height but keep y to avoid teleport
+                    height = originalHeight / 2;
+                }
+            }
         }
     }
 
-    /**
-     * Ends sliding and restores the player's original height.  The
-     * y position is adjusted downward accordingly.  If a timer
-     * system is desired this could be invoked after a delay instead
-     * of directly from keyReleased.
-     */
     public void endSlide() {
         if (sliding) {
-            // Restore y first then height to keep the bottom aligned
-            y -= originalHeight / 2;
-            height = originalHeight;
-            sliding = false;
+            if (slideFrames != null && slideFrames.length > 0) {
+                slideReleasePlaying = true;
+                slideIndex = Math.max(slideDownCount - 1, 0);
+            } else {
+                y -= originalHeight / 2;
+                height = (image != null) ? image.getHeight() : originalHeight;
+                sliding = false;
+            }
         }
     }
 
-    /**
-     * Indicates whether the player is currently on the ground.
-     * @return true if the player is touching the ground, false if
-     *         airborne
-     */
     public boolean isOnGround() {
         return onGround;
     }
 
+    public void applyGift1JumpBoost(double newGravityAcc, double newJumpVelocity) {
+        this.gravityAcc = newGravityAcc;
+        this.jumpVelocity = newJumpVelocity;
+    }
+
+    public void resetJumpPhysics() {
+        // Reset to centralized defaults
+        this.gravityAcc = DEFAULT_GRAVITY_ACC;
+        this.jumpVelocity = DEFAULT_JUMP_VELOCITY;
+    }
+
+    public void setRunAnimSpeedMultiplier(double m) {
+        this.runAnimSpeedMultiplier = m;
+    }
     @Override
     public void draw(Graphics2D g) {
-        if (image != null) {
+        if (slideAnimActive && slideFrames != null && slideFrames.length > 0) {
+            int drawW = originalWidth;
+            int drawH = Math.max(1, (int) Math.round(originalHeight * SLIDE_VISUAL_SCALE));
+            int drawX = (int) Math.round(x);
+            int drawY = (int) Math.round(y + originalHeight - drawH);
+            BufferedImage toDraw = (image != null) ? image : slideFrames[Math.max(0, Math.min(slideIndex, slideFrames.length - 1))];
+            g.drawImage(toDraw, drawX, drawY, drawW, drawH, null);
+        } else if (image != null) {
             g.drawImage(image, (int) Math.round(x), (int) Math.round(y), width, height, null);
         } else {
-            // Fallback: draw a simple blue rectangle when no image is available
             g.setColor(Color.BLUE);
             g.fillRect((int) Math.round(x), (int) Math.round(y), width, height);
         }
+    }
+
+    @Override
+    public Rectangle getBounds() {
+        if (slideAnimActive && slideFrames != null && slideFrames.length > 0) {
+            int drawW = originalWidth;
+            int drawH = Math.max(1, (int) Math.round(originalHeight * SLIDE_VISUAL_SCALE));
+            int drawX = (int) Math.round(x);
+            int drawY = (int) Math.round(y + originalHeight - drawH);
+            return new Rectangle(drawX, drawY, drawW, drawH);
+        }
+        return super.getBounds();
     }
 }
