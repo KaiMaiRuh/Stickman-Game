@@ -25,33 +25,33 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
     private enum GameState { MENU, RUNNING, GAME_OVER_MENU }
     public static final int WIDTH = 1024;
     public static final int HEIGHT = 512;
-    // Tunable gameplay/view constants
-    public static final int GROUND_HEIGHT = 50;                // ground thickness used in layout
-    private static final int PLAYER_TARGET_HEIGHT = 120;       // player render height
-    private static final int JUMP_OBS_HEIGHT = 100;            // jump obstacle height
-    private static final int SLIDE_OBS_HEIGHT = 140;           // slide obstacle height
-    private static final int GIFT_HEIGHT = 70;                 // gift sprite height
+    
+    public static final int GROUND_HEIGHT = 50;                
+    private static final int PLAYER_TARGET_HEIGHT = 120;       
+    private static final int JUMP_OBS_HEIGHT = 100;            
+    private static final int SLIDE_OBS_HEIGHT = 140;           
+    private static final int GIFT_HEIGHT = 70;                 
 
     private static final int TARGET_FPS = 120;
     private static final long TARGET_FRAME_TIME_NS = 1_000_000_000L / TARGET_FPS;
-    // Spawning and movement tuning
-    private static final int MIN_SPAWN_GAP_PX = 400;   // ensure obstacles don't appear together at the right edge
-    private static final double MIN_SPAWN_DELAY = 1.3; // seconds
-    private static final double MAX_SPAWN_DELAY = 2.2; // seconds
-    private static final double SLIDE_MIN_INTERVAL = 2.5; // seconds between slide obstacles
-    private static final double SLIDE_SPAWN_PROB = 0.45;   // chance when eligible
-    private static final double BG_SCROLL_SPEED = 60.0;    // background scroll px/sec
-    private static final double OBSTACLE_BASE_SPEED = -5.0;    // px/update frame baseline (will be scaled by dt in update())
-    private static final double OBSTACLE_SPEED_VARIANCE = -2.0; // additional negative speed (0..-2)
+    
+    private static final int MIN_SPAWN_GAP_PX = 400;   
+    private static final double MIN_SPAWN_DELAY = 1.3; 
+    private static final double MAX_SPAWN_DELAY = 2.2; 
+    private static final double SLIDE_MIN_INTERVAL = 2.5; 
+    private static final double SLIDE_SPAWN_PROB = 0.45;   
+    private static final double BG_SCROLL_SPEED = 60.0;    
+    private static final double OBSTACLE_BASE_SPEED = -5.0;    
+    private static final double OBSTACLE_SPEED_VARIANCE = -2.0; 
     private static final double GIFT_BASE_SPEED = -4.5;
     private static final double GIFT_SPEED_VARIANCE = -1.5;
-    private static final double RECYCLE_JITTER_MIN_RATIO = 0.25; // as fraction of MIN_SPAWN_GAP_PX
+    private static final double RECYCLE_JITTER_MIN_RATIO = 0.25; 
     private static final double RECYCLE_JITTER_MAX_RATIO = 0.75;
-    // Gift spawning
-    private static final double GIFT_CHECK_INTERVAL = 1.0; // seconds
+    
+    private static final double GIFT_CHECK_INTERVAL = 1.0; 
     private static final int MAX_SIMULT_GIFTS = 2;
-    private static final double GIFT1_PROB = 0.4; // per check
-    private static final double GIFT2_PROB = 0.1; // per check
+    private static final double GIFT1_PROB = 0.4; 
+    private static final double GIFT2_PROB = 0.1; 
 
     private Thread gameThread;
     private volatile boolean running = false;
@@ -94,12 +94,12 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
     private static final double GIFT2_SPEED_MULTIPLIER = 2.0;
     private double obstacleSpeedMultiplier = 1.0;
     
-    // Menu assets
+    
     private BufferedImage startButtonImage;
     private BufferedImage exitButtonImage;
     private BufferedImage tryAgainButtonImage;
     
-    // Sound
+    
     private final SoundManager sound = new SoundManager();
 
         public GameCanvas() {
@@ -130,7 +130,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         } else {
             player = new Player(playerX, playerY, playerImage);
         }
-        // Start menu BGM
+        
     sound.playBgmLoop("Sound/Menu.wav");
     }
 
@@ -223,7 +223,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                 playerSlideFrames = slide.toArray(new BufferedImage[0]);
             }
             
-            // Idle frames
+            
             java.util.List<BufferedImage> idle = new java.util.ArrayList<>();
             for (int i = 1; i <= 10; i++) {
                 File f = new File("Player/Idle/Idle" + i + ".png");
@@ -233,7 +233,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                 }
             }
             if (idle.isEmpty()) {
-                // try common single-file names (case-insensitive variants)
+                
                 String[] candidates = new String[] {"Player/Idle/IDLE.png", "Player/Idle/Idle.png", "Player/Idle/idle.png", "Player/Idle/IDLE.PNG"};
                 for (String p : candidates) {
                     File f = new File(p);
@@ -284,7 +284,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                 slideObstacleImages = slideObs.toArray(new BufferedImage[0]);
             }
             
-            // Gifts
+            
             File g1 = new File("Gift/Gift1.png");
             if (g1.exists()) {
                 BufferedImage raw = ImageIO.read(g1);
@@ -305,7 +305,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                 backgroundImage = scaleToHeight(rawBg, HEIGHT);
             }
             
-            // Menu buttons (optional)
+            
             File sb = new File("START.png");
             if (sb.exists()) {
                 startButtonImage = ImageIO.read(sb);
@@ -314,7 +314,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
             if (eb.exists()) {
                 exitButtonImage = ImageIO.read(eb);
             }
-            // Try Again (support a few common names)
+            
             File tab = new File("TRY AGAIN.png");
             if (!tab.exists()) tab = new File("Try Again.png");
             if (!tab.exists()) tab = new File("TRY_AGAIN.png");
@@ -365,7 +365,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
 
     player.update();
     timeSinceLastSlide += dt;
-    // Background scroll only while running
+    
     if (backgroundImage != null) {
         bgOffset += BG_SCROLL_SPEED * dt;
         double bw = backgroundImage.getWidth();
@@ -374,7 +374,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         }
     }
     
-    // Handle Gift1 timer expiration
+    
     if (gift1Active) {
         gift1Timer -= dt;
         if (gift1Timer <= 0) {
@@ -384,23 +384,23 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         }
     }
 
-    // Handle Gift2 timer expiration
+    
     if (gift2Active) {
         gift2Timer -= dt;
         if (gift2Timer <= 0) {
-            // deactivate and wipe all current obstacles
+            
             gift2Active = false;
             gift2Timer = 0.0;
             obstacleSpeedMultiplier = 1.0;
             player.setRunAnimSpeedMultiplier(1.0);
             obstacles.clear();
-            // reset spawn timing so new obstacles start after a brief delay
+            
             spawnTimer = 0.0;
             nextSpawnDelay = MIN_SPAWN_DELAY + random.nextDouble() * (MAX_SPAWN_DELAY - MIN_SPAWN_DELAY);
         }
     }
 
-        // Use a rolling rightmost tracker so multiple recycled obstacles don't get stacked at the same X
+        
         double rollingRightmost = getRightmostObstacleRight();
         Iterator<Obstacle> iter = obstacles.iterator();
         while (iter.hasNext()) {
@@ -416,12 +416,12 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
 
             if (obs.getX() + obs.getWidth() < 0) {
                 score++;
-                // Recycle this obstacle with enforced horizontal spacing from the rolling rightmost
+                
                 double baseSpawn = Math.max(WIDTH, rollingRightmost + MIN_SPAWN_GAP_PX);
                 double jitter = MIN_SPAWN_GAP_PX * (RECYCLE_JITTER_MIN_RATIO + random.nextDouble() * (RECYCLE_JITTER_MAX_RATIO - RECYCLE_JITTER_MIN_RATIO));
                 double newX = baseSpawn + jitter;
                 obs.setX(newX);
-                // advance rollingRightmost so subsequent recycled obstacles are placed further to the right
+                
                 rollingRightmost = Math.max(rollingRightmost, newX + obs.getWidth());
             }
         }
@@ -433,27 +433,27 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                     nextSpawnDelay = MIN_SPAWN_DELAY + random.nextDouble() * (MAX_SPAWN_DELAY - MIN_SPAWN_DELAY);
                     spawnObstacle();
                 } else {
-                    // hold the timer here and re-check each frame until the clearance is available
+                    
                     spawnTimer = nextSpawnDelay;
                 }
             }
 
-        // Gifts update and collisions
+        
         Iterator<Gift> git = gifts.iterator();
         while (git.hasNext()) {
             Gift gift = git.next();
             gift.update();
-            // collect
+            
             if (!gift.isCollected() && player.getBounds().intersects(gift.getBounds())) {
                 gift.markCollected();
-                // apply effects
+                
                 if (gift.getType() == Gift.Type.GIFT1) {
-                    // Better jump for limited time: lighter gravity and stronger upward velocity
+                    
                     gift1Active = true;
-                    gift1Timer = GIFT1_DURATION; // refresh if already active
+                    gift1Timer = GIFT1_DURATION; 
                     player.applyGift1JumpBoost(0.3, -12.0);
                 } else if (gift.getType() == Gift.Type.GIFT2) {
-                    // Speed boost and phase through obstacles for 5s
+                    
                     if (!gift2Active) {
                         gift2Active = true;
                         gift2Timer = GIFT2_DURATION;
@@ -463,18 +463,18 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                             o.setSpeedX(o.getSpeedX() * GIFT2_SPEED_MULTIPLIER);
                         }
                     } else {
-                        // refresh timer if collected while active
+                        
                         gift2Timer = GIFT2_DURATION;
                     }
                 }
             }
-            // remove conditions
+            
             if (gift.isCollected() || gift.getX() + gift.getWidth() < 0) {
                 git.remove();
             }
         }
 
-        // Gifts spawning check
+        
         giftSpawnTimer += dt;
         if (giftSpawnTimer >= GIFT_CHECK_INTERVAL) {
             giftSpawnTimer -= GIFT_CHECK_INTERVAL;
@@ -488,11 +488,11 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
             }
         }
 
-        // background already updated above
+        
     }
 
     private boolean hasSpawnClearance() {
-        // Ensure the rightmost obstacle's right edge is at least MIN_SPAWN_GAP_PX away from the spawn edge (WIDTH)
+        
         double rightmost = getRightmostObstacleRight();
         return rightmost < (WIDTH - MIN_SPAWN_GAP_PX);
     }
@@ -520,10 +520,10 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         if (spawnSlide) {
             chosenImage = slideObstacleImages[random.nextInt(slideObstacleImages.length)];
             desiredObstacleHeight = SLIDE_OBS_HEIGHT;
-            // Place slide obstacles so they block the upper body when standing but clear the lower body when sliding.
-            // Compute player's top Y when standing, then position obstacle so its bottom sits around the mid-chest area.
+            
+            
             double standingTopY = HEIGHT - GROUND_HEIGHT - PLAYER_TARGET_HEIGHT;
-            double slideBottomTarget = standingTopY + (PLAYER_TARGET_HEIGHT * 0.45); // target bottom around 45% down from head
+            double slideBottomTarget = standingTopY + (PLAYER_TARGET_HEIGHT * 0.45); 
             y = slideBottomTarget - desiredObstacleHeight;
             if (y < 0) y = 0;
         } else {
@@ -549,8 +549,8 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         double x = WIDTH;
         BufferedImage img = (type == Gift.Type.GIFT1) ? gift1Image : gift2Image;
         int gH = (img != null) ? img.getHeight() : 24;
-        // place above ground to encourage jumping
-        double clearance = 100; // pixels above ground
+        
+        double clearance = 100; 
     double y = HEIGHT - GROUND_HEIGHT - clearance - gH;
         y = Math.max(0, y);
     double speedX = (GIFT_BASE_SPEED + random.nextDouble() * GIFT_SPEED_VARIANCE) * obstacleSpeedMultiplier;
@@ -594,7 +594,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
                         g.setColor(Color.BLACK);
                         g.setFont(g.getFont().deriveFont(18f));
                         g.drawString("Score: " + score, 10, 20);
-                        // Small HUD for active gift timers
+                        
                         int hudY = 40;
                         g.setFont(g.getFont().deriveFont(16f));
                         if (gift1Active) {
@@ -623,7 +623,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
     }
 
         private void gameOver() {
-        // Switch to game-over menu
+        
         state = GameState.GAME_OVER_MENU;
         obstacles.clear();
         gifts.clear();
@@ -634,7 +634,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         obstacleSpeedMultiplier = 1.0;
         player.resetJumpPhysics();
             player.setRunAnimSpeedMultiplier(1.0);
-            // Sounds: lose sfx then menu bgm
+            
         sound.playSfx("Sound/Lose.wav");
         sound.playBgmLoop("Sound/Menu.wav");
     }
@@ -670,7 +670,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         
     }
 
-    // ---- Menu helpers ----
+    
     private void updateIdleAnim() {
         if (playerIdleFrames == null || playerIdleFrames.length == 0) return;
         idleTicker++;
@@ -701,7 +701,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         Point startPos = getButtonPosition(true);
         Point exitPos = getButtonPosition(false);
 
-        // START or TRY AGAIN
+        
         if (!isGameOver) {
             if (startButtonImage != null) {
                 g.drawImage(startButtonImage, startPos.x, startPos.y, btnW, btnH, null);
@@ -724,7 +724,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
             }
         }
 
-        // EXIT
+        
         if (exitButtonImage != null) {
             g.drawImage(exitButtonImage, exitPos.x, exitPos.y, btnW, btnH, null);
         } else {
@@ -794,7 +794,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
         obstacleSpeedMultiplier = 1.0;
         player.resetJumpPhysics();
         player.setRunAnimSpeedMultiplier(1.0);
-        // reposition player on ground
+        
         int pH = (playerRunFrames != null && playerRunFrames.length > 0) ? playerRunFrames[0].getHeight() : player.getHeight();
     double pY = HEIGHT - pH - GROUND_HEIGHT;
         player.setY(pY);
@@ -804,7 +804,7 @@ public class GameCanvas extends Canvas implements Runnable, KeyListener {
 
     private static String formatSeconds(double seconds) {
         if (seconds < 0) seconds = 0;
-        // Show one decimal place, e.g., 4.3s
+        
         return String.format("%.1fs", seconds);
     }
 }

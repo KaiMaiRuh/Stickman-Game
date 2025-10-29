@@ -14,7 +14,7 @@ class Player extends Sprite {
     private BufferedImage[] runFrames;
     private int frameIndex = 0;
     private int frameTicker = 0;
-    // Tunable animation/physics defaults
+    
     private static final int RUN_FRAMES_PER_STEP = 16;
     private static final int JUMP_FRAMES_PER_STEP = 12;
     private static final int SLIDE_FRAMES_PER_STEP = 8;
@@ -37,7 +37,7 @@ class Player extends Sprite {
     private boolean slideReleasePlaying = false;
 
     private static final double SLIDE_VISUAL_SCALE = 0.4;
-    // Single source of truth for default jump physics
+    
     private static final double DEFAULT_GRAVITY_ACC = 0.4;
     private static final double DEFAULT_JUMP_VELOCITY = -11.0;
     private double gravityAcc = DEFAULT_GRAVITY_ACC;
@@ -92,7 +92,7 @@ class Player extends Sprite {
             onGround = true;
         }
 
-        // Give jump animation priority over slide so we can jump out of a slide immediately
+        
         if (jumpAnimPlaying && jumpFrames != null && jumpFrames.length > 0) {
             jumpTicker++;
             if (jumpTicker >= jumpFramesPerStep) {
@@ -161,9 +161,9 @@ class Player extends Sprite {
     }
 
     public void jump() {
-        // Allow jumping either from ground or when sliding (including mid-air slide)
+        
         if (onGround || sliding) {
-            // end slide state so jump animation can take over
+            
             sliding = false;
             slideAnimActive = false;
             slideReleasePlaying = false;
@@ -194,13 +194,13 @@ class Player extends Sprite {
                 image = slideFrames[0];
                 width = image.getWidth();
                 height = image.getHeight();
-                // If in air, do not modify y; visual will show airborne slide
+                
             } else {
                 if (onGround) {
                     height = originalHeight / 2;
                     y += originalHeight / 2;
                 } else {
-                    // mid-air without frames: reduce height but keep y to avoid teleport
+                    
                     height = originalHeight / 2;
                 }
             }
@@ -230,7 +230,7 @@ class Player extends Sprite {
     }
 
     public void resetJumpPhysics() {
-        // Reset to centralized defaults
+        
         this.gravityAcc = DEFAULT_GRAVITY_ACC;
         this.jumpVelocity = DEFAULT_JUMP_VELOCITY;
     }

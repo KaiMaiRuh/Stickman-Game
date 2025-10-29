@@ -2,13 +2,8 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 
-/**
- * Simple WAV sound manager using Java Sound (Clip).
- * - BGM loops continuously
- * - SFX plays once
- */
 class SoundManager {
-    // Tunable volume levels (0.0 - 1.0)
+    
     private static final double BGM_VOLUME = 0.7;
     private static final double SFX_VOLUME = 1.0;
     private Clip bgmClip;
@@ -33,7 +28,7 @@ class SoundManager {
     }
 
     public void playSfx(String path) {
-        // Stop previous SFX to avoid stacking
+        
         if (sfxClip != null) {
             try { sfxClip.stop(); } catch (Exception ignored) {}
             try { sfxClip.close(); } catch (Exception ignored) {}
@@ -77,7 +72,7 @@ class SoundManager {
             dB = Math.max(control.getMinimum(), Math.min(control.getMaximum(), dB));
             control.setValue(dB);
         } catch (Exception ignored) {
-            // Device might not support volume control; ignore
+            
         }
     }
 }
