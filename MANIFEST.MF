@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Main-Class: MainGame
+Created-By: Stickman Game Project
+Implementation-Title: Stickman Game
+Implementation-Version: 1.0
+Implementation-Vendor: KaiMaiRuh
